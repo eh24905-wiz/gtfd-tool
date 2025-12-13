@@ -1,0 +1,25 @@
+# Example todo.txt file - Bluey family tasks
+# Copy this to todo.txt to get started: cp todo.txt.example todo.txt
+
+# Completed tasks (marked with x and completion date)
+x 2025-12-10 2025-12-09 Take Bluey and Bingo to the park +Family @outside
+x 2025-12-11 2025-12-10 Fix the BBQ before weekend cookout +Home @garage
+x 2025-12-12 2025-12-11 Call Stripe about Christmas plans +Family @phone
+
+# Inbox items (quick captures awaiting processing)
+2025-12-13 Ideas for Bingo's birthday party @inbox
+2025-12-13 Look into dance classes for Bluey @inbox
+2025-12-13 Bandit mentioned something about the bins @inbox
+
+# Priority tasks (A = highest)
+(A) 2025-12-12 Pick up Bluey from school +Family @errands due:2025-12-13
+(A) 2025-12-13 Finish archaeology report for work +Work @computer due:2025-12-14
+(B) 2025-12-11 Plan weekend trip to the beach +Family @home due:2025-12-15
+(B) 2025-12-12 Schedule vet appointment for Chilli's mum's dog +Family @phone due:2025-12-16
+
+# Regular tasks (no priority)
+2025-12-10 Buy new cricket bat for backyard games +Home @errands
+2025-12-11 Help Bingo practice her handstands +Family @home
+2025-12-12 Clean out the garage before Rad visits +Home @garage
+2025-12-13 Research camping spots for school holidays +Family @computer
+

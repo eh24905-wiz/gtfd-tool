@@ -1,0 +1,14 @@
+# Personal todo file (contains user's actual tasks)
+todo.txt
+
+# Lock file
+.todo.lock
+
+# macOS
+.DS_Store
+
+# Editor backups
+*~
+*.swp
+*.swo
+
