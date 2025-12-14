@@ -4,13 +4,32 @@
 set -o pipefail
 
 # Configuration
-readonly TODO_DIR="$HOME/.todo"
-readonly TODO_FILE="$TODO_DIR/todo.txt"
-readonly LOCK_FILE="$TODO_DIR/.todo.lock"
+# Priority: Environment variable > Config file > Default
+readonly CONFIG_DIR="$HOME/.todo"
+readonly CONFIG_FILE="$CONFIG_DIR/config"
+
+# Default values
+DEFAULT_TODO_FILE="$HOME/.todo/todo.txt"
+
+# Load config file if it exists
+if [[ -f "$CONFIG_FILE" ]]; then
+    # shellcheck source=/dev/null
+    source "$CONFIG_FILE"
+fi
+
+# Set TODO_FILE: env var takes priority, then config file, then default
+TODO_FILE="${TODO_FILE:-$DEFAULT_TODO_FILE}"
+
+# Derive TODO_DIR and LOCK_FILE from TODO_FILE location
+TODO_DIR="$(dirname "$TODO_FILE")"
+LOCK_FILE="$TODO_DIR/.todo.lock"
+
+# Export for potential child processes
+export TODO_FILE TODO_DIR
 
 # UI Constants
 readonly SEPARATOR="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-readonly INBOX_MARKER="@inbox"
+readonly INBOX_MARKER="status:inbox"
 
 # Color support detection: disable colors when output isn't a terminal
 if [[ -t 1 ]]; then
@@ -39,8 +58,14 @@ is_positive_integer() {
 }
 
 # Validation helper: check if priority is valid (single letter A-Z)
+# Uses tr for Bash 3.2 compatibility (macOS default)
 is_valid_priority() {
-    [[ "${1^^}" =~ ^[A-Z]$ ]]
+    [[ "$1" =~ ^[A-Za-z]$ ]]
+}
+
+# Convert to uppercase (Bash 3.2 compatible)
+to_upper() {
+    echo "$1" | tr '[:lower:]' '[:upper:]'
 }
 
 # Cross-platform sed in-place edit
@@ -192,7 +217,7 @@ prompt_and_build_task() {
     due=$(parse_due_date "$due")
 
     BUILD_TASK="$(today) $task_text"
-    [[ -n "$priority" ]] && BUILD_TASK="(${priority^^}) $BUILD_TASK"
+    [[ -n "$priority" ]] && BUILD_TASK="($(to_upper "$priority")) $BUILD_TASK"
     [[ -n "$project" ]] && BUILD_TASK="$BUILD_TASK $project"
     [[ -n "$context" ]] && BUILD_TASK="$BUILD_TASK $context"
     [[ -n "$due" ]] && BUILD_TASK="$BUILD_TASK due:$due"
