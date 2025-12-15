@@ -230,7 +230,7 @@ cmd_inbox() {
         if [[ "$count" -eq 0 ]]; then
             printf "${YELLOW}Inbox is empty${NC}\n"
             echo "Use 't \"your idea\"' to capture something."
-            return
+            return 0
         fi
         printf "${CYAN}Inbox (%s items)${NC}\n" "$count"
         echo "$SEPARATOR"
@@ -240,6 +240,7 @@ cmd_inbox() {
         echo "$(today) $* $INBOX_MARKER" >> "$TODO_FILE"
         printf "${GREEN}* Added to inbox:${NC} %s\n" "$*"
     fi
+    return 0
 }
 
 cmd_list() {
@@ -322,6 +323,7 @@ cmd_list() {
     if [[ "$icount" -gt 0 ]] && [ "$show_all" = "false" ]; then
         printf "${YELLOW}%s item(s) in inbox awaiting processing${NC}\n" "$icount"
     fi
+    return 0
 }
 
 cmd_done() {
@@ -335,7 +337,7 @@ cmd_done() {
 
         if [[ -z "$completed_tasks" ]]; then
             printf "${YELLOW}No completed tasks yet.${NC}\n"
-            return
+            return 0
         fi
 
         local num=1
@@ -348,7 +350,7 @@ cmd_done() {
         done <<< "$completed_tasks"
 
         printf "\n${CYAN}Total: %d completed${NC}\n" "$((num - 1))"
-        return
+        return 0
     fi
 
     # With argument: mark task as complete
@@ -369,6 +371,7 @@ cmd_done() {
     completed="x $(today) $(echo "$task" | sed 's/^([A-Z]) //')"
     sed_inplace "${line_num}s|.*|${completed}|" "$TODO_FILE"
     printf "${GREEN}[x] Completed:${NC} %s\n" "$task"
+    return 0
 }
 
 cmd_delete() {
@@ -396,6 +399,7 @@ cmd_delete() {
 
     sed_inplace "${line_num}d" "$TODO_FILE"
     printf "${RED}✗ Deleted:${NC} %s\n" "$task"
+    return 0
 }
 
 cmd_add() {
@@ -404,6 +408,7 @@ cmd_add() {
     fi
     echo "$(today) $*" >> "$TODO_FILE"
     printf "${GREEN}* Added:${NC} $(today) %s\n" "$*"
+    return 0
 }
 
 cmd_process() {
@@ -459,6 +464,7 @@ cmd_process() {
     
     echo "$SEPARATOR"
     printf "${GREEN}Done!${NC} %s actionable, %s deleted, %s skipped\n" "$processed" "$deleted" "$skipped"
+    return 0
 }
 
 process_single_item() {
@@ -494,6 +500,7 @@ process_single_item() {
             printf "${BLUE}-> Skipped${NC}\n"
             ;;
     esac
+    return 0
 }
 
 cmd_due() {
@@ -501,7 +508,7 @@ cmd_due() {
     today_date=$(today)
     printf "${CYAN}Tasks by Due Date${NC}\n"
     echo "$SEPARATOR"
-    
+
     case "$1" in
         today|t)
             printf "\n${BOLD}Due Today (%s):${NC}\n" "$today_date"
@@ -509,14 +516,21 @@ cmd_due() {
             ;;
         overdue|o)
             printf "\n${BOLD}Overdue:${NC}\n"
-            grep -v "^x " "$TODO_FILE" | grep -E "due:[0-9]{4}-[0-9]{2}-[0-9]{2}" | while read -r line; do
+            local overdue_tasks
+            overdue_tasks=$(grep -v "^x " "$TODO_FILE" | grep -E "due:[0-9]{4}-[0-9]{2}-[0-9]{2}" | while read -r line; do
                 due=$(echo "$line" | grep -oE "due:[0-9-]+" | cut -d: -f2)
                 [[ "$due" < "$today_date" ]] && echo "$line"
-            done | nl -w2 -s'. '
+            done)
+            if [[ -n "$overdue_tasks" ]]; then
+                echo "$overdue_tasks" | nl -w2 -s'. '
+            else
+                echo "  (none)"
+            fi
             ;;
         *) printf "\n${BOLD}All with due dates:${NC}\n"
-           grep -v "^x " "$TODO_FILE" | grep "due:" | nl -w2 -s'. ' ;;
+           grep -v "^x " "$TODO_FILE" | grep "due:" | nl -w2 -s'. ' || echo "  (none)" ;;
     esac
+    return 0
 }
 
 cmd_help() {
@@ -540,22 +554,25 @@ cmd_help() {
     echo "t help / t h         Show this help"
 }
 
-# Main router
+# Main router - capture exit code to ensure clean exit
+main_exit=0
 case "$1" in
-    inbox)       shift; cmd_inbox "$@" ;;
-    i)           shift; cmd_inbox "$@" ;;
-    list|ls)     shift; cmd_list "$@" ;;
-    l)           shift; cmd_list "$@" ;;
-    la)          shift; cmd_list all "$@" ;;
-    process)     shift; cmd_process "$@" ;;
-    p)           shift; cmd_process "$@" ;;
-    done|do)     shift; cmd_done "$@" ;;
-    d)           shift; cmd_done "$@" ;;
-    xx)          shift; cmd_delete "$@" ;;
-    add)         shift; cmd_add "$@" ;;
-    due)         shift; cmd_due "$@" ;;
-    du)          shift; cmd_due "$@" ;;
+    inbox)       shift; cmd_inbox "$@" || main_exit=$? ;;
+    i)           shift; cmd_inbox "$@" || main_exit=$? ;;
+    list|ls)     shift; cmd_list "$@" || main_exit=$? ;;
+    l)           shift; cmd_list "$@" || main_exit=$? ;;
+    la)          shift; cmd_list all "$@" || main_exit=$? ;;
+    process)     shift; cmd_process "$@" || main_exit=$? ;;
+    p)           shift; cmd_process "$@" || main_exit=$? ;;
+    done|do)     shift; cmd_done "$@" || main_exit=$? ;;
+    d)           shift; cmd_done "$@" || main_exit=$? ;;
+    xx)          shift; cmd_delete "$@" || main_exit=$? ;;
+    add)         shift; cmd_add "$@" || main_exit=$? ;;
+    due)         shift; cmd_due "$@" || main_exit=$? ;;
+    du)          shift; cmd_due "$@" || main_exit=$? ;;
     help|-h|--help|h) cmd_help ;;
-    "")          cmd_list ;;
-    *)           cmd_inbox "$@" ;;
+    "")          cmd_list || main_exit=$? ;;
+    *)           cmd_inbox "$@" || main_exit=$? ;;
 esac
+
+exit $main_exit
