@@ -115,14 +115,14 @@ get_task_line() {
 
     local tasks priority other combined_tasks
 
-    # Get tasks excluding completed (and optionally inbox)
+    # Get tasks excluding completed, blank lines (and optionally inbox)
     if [[ "$include_inbox" == "all" ]]; then
-        tasks=$(echo "$file_content" | grep -v "^x ")
+        tasks=$(echo "$file_content" | grep -v "^x " | grep -v "^[[:space:]]*$")
     else
-        tasks=$(echo "$file_content" | grep -v "^x " | grep -v "$INBOX_MARKER")
+        tasks=$(echo "$file_content" | grep -v "^x " | grep -v "^[[:space:]]*$" | grep -v "$INBOX_MARKER")
     fi
     priority=$(echo "$tasks" | grep "^([A-Z])" | sort)
-    other=$(echo "$tasks" | grep -v "^([A-Z])")
+    other=$(echo "$tasks" | grep -v "^([A-Z])" | grep -v "^[[:space:]]*$")
 
     # Combine in display order
     combined_tasks=""
